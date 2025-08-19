@@ -1,0 +1,51 @@
+XMLUI MCP Configuration
+======================
+
+XMLUI Directory: /Users/mikeschinkel/xmlui2
+
+For Claude Desktop, add this to ~/Library/Application Support/Claude/claude_desktop_config.json:
+
+{
+  "mcpServers": {
+    "xmlui": {
+      "command": "/Users/mikeschinkel/Projects/xmlui-mcp/bin/xmlui-mcp",
+      "args": [
+        "/Users/mikeschinkel/xmlui2",
+        "/Users/mikeschinkel",
+        "xmlui-examples"
+      ]
+    }
+  }
+}
+
+For Cursor, add this to ~/.cursor.mcp.json:
+
+{
+  "mcpServers": {
+    "xmlui": {
+      "command": "/Users/mikeschinkel/Projects/xmlui-mcp/bin/xmlui-mcp",
+      "args": [
+        "/Users/mikeschinkel/xmlui2",
+        "/Users/mikeschinkel", 
+        "xmlui-examples"
+      ]
+    }
+  }
+}
+
+For VS Code Copilot, add this to ~/Library/Application Support/Code/User/mcp.json:
+
+{
+  "mcpServers": {
+    "xmlui": {
+      "command": "/Users/mikeschinkel/Projects/xmlui-mcp/bin/xmlui-mcp",
+      "args": [
+        "/Users/mikeschinkel/xmlui2",
+        "/Users/mikeschinkel",
+        "xmlui-examples"
+      ]
+    }
+  }
+}
+
+Note: Adjust the example directories ("xmlui-examples") to match your actual project directories.

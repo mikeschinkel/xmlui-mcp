@@ -19,7 +19,7 @@ import (
 	mcpserver "xmlui-mcp/server"
 )
 
-// Prompt API structures
+// PromptInfo API structures
 type PromptInfo struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -33,7 +33,7 @@ type PromptContent struct {
 
 type PromptHandler func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error)
 
-// Session management structures
+// SessionContext management structures
 type SessionContext struct {
 	ID              string              `json:"id"`
 	InjectedPrompts []string            `json:"injected_prompts"`
@@ -58,11 +58,11 @@ type InjectPromptResponse struct {
 }
 
 func printToolRegistration(tool mcp.Tool) {
-	fmt.Fprintf(os.Stderr, "%s\n", tool.Name)
-	fmt.Fprintf(os.Stderr, " %s\n", tool.Description)
+	fprintf(os.Stderr, "%s\n", tool.Name)
+	fprintf(os.Stderr, " %s\n", tool.Description)
 
 	if len(tool.InputSchema.Properties) > 0 {
-		fmt.Fprintf(os.Stderr, " Input schema:\n")
+		fprintf(os.Stderr, " Input schema:\n")
 		for name, prop := range tool.InputSchema.Properties {
 			required := ""
 			for _, req := range tool.InputSchema.Required {
@@ -80,20 +80,21 @@ func printToolRegistration(tool mcp.Tool) {
 				}
 			}
 
-			fmt.Fprintf(os.Stderr, "   - %s %s: %s\n", name, required, desc)
+			fprintf(os.Stderr, "   - %s %s: %s\n", name, required, desc)
 		}
 	}
 
-	fmt.Fprintln(os.Stderr)
+	fprintln(os.Stderr)
 }
 
 func printPromptRegistration(prompt mcp.Prompt) {
-	fmt.Fprintf(os.Stderr, "PROMPT: %s\n", prompt.Name)
-	fmt.Fprintf(os.Stderr, " %s\n", prompt.Description)
-	fmt.Fprintln(os.Stderr)
+	fprintf(os.Stderr, "PROMPT: %s\n", prompt.Name)
+	fprintf(os.Stderr, " %s\n", prompt.Description)
+	fprintln(os.Stderr)
 }
 
 // Session management methods
+
 func (sm *SessionManager) GetOrCreateSession(id string) *SessionContext {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
@@ -196,16 +197,16 @@ func main() {
 	args := flag.Args()
 
 	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: ./xmlui-mcp [--http] [--port PORT] <xmluiDir> [exampleRoot] [comma-separated-exampleDirs]")
-		fmt.Fprintln(os.Stderr, "  --http: Run in HTTP mode (default: stdio mode)")
-		fmt.Fprintln(os.Stderr, "  --port: Port to listen on in HTTP mode (default: 8080)")
+		_, _ = fmt.Fprintln(os.Stderr, "Usage: ./xmlui-mcp [--http] [--port PORT] <xmluiDir> [exampleRoot] [comma-separated-exampleDirs]")
+		_, _ = fmt.Fprintln(os.Stderr, "  --http: Run in HTTP mode (default: stdio mode)")
+		_, _ = fmt.Fprintln(os.Stderr, "  --port: Port to listen on in HTTP mode (default: 8080)")
 		os.Exit(1)
 	}
 
 	xmluiDir := args[0]
 	exampleRoot := ""
-	exampleDirs := []string{}
-	exampleRoots := []string{}
+	exampleDirs := make([]string, 0)
+	exampleRoots := make([]string, 0)
 
 	// Optional arg 2: example root
 	if len(args) >= 2 {
@@ -234,7 +235,7 @@ func main() {
 
 	// Store prompts and their handlers for API access
 	var promptsList []mcp.Prompt
-	var promptHandlers map[string]PromptHandler = make(map[string]PromptHandler)
+	var promptHandlers = make(map[string]PromptHandler)
 
 	// Define the xmlui_rules prompt handler once
 	xmluiRulesHandler := func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
@@ -520,7 +521,7 @@ These rules ensure clean, maintainable XMLUI applications that follow best pract
 				})
 			}
 
-			json.NewEncoder(w).Encode(toolList)
+			must(json.NewEncoder(w).Encode(toolList))
 		})
 
 		// Add the /prompts endpoint to list all prompts
@@ -544,7 +545,7 @@ These rules ensure clean, maintainable XMLUI applications that follow best pract
 				})
 			}
 
-			json.NewEncoder(w).Encode(promptInfoList)
+			must(json.NewEncoder(w).Encode(promptInfoList))
 		})
 
 		// Add the /prompts/{name} endpoint to retrieve specific prompt
@@ -604,7 +605,7 @@ These rules ensure clean, maintainable XMLUI applications that follow best pract
 				Messages:    result.Messages,
 			}
 
-			json.NewEncoder(w).Encode(promptContent)
+			must(json.NewEncoder(w).Encode(promptContent))
 		})
 
 		// GET /session/{id} - Get session context
@@ -627,7 +628,7 @@ These rules ensure clean, maintainable XMLUI applications that follow best pract
 			}
 
 			session := sessionManager.GetOrCreateSession(sessionID)
-			json.NewEncoder(w).Encode(session)
+			must(json.NewEncoder(w).Encode(session))
 		})
 
 		// POST /session/context - Inject prompt into session
@@ -668,7 +669,7 @@ These rules ensure clean, maintainable XMLUI applications that follow best pract
 				return
 			}
 
-			json.NewEncoder(w).Encode(response)
+			must(json.NewEncoder(w).Encode(response))
 		})
 
 		// Add analytics endpoints
@@ -684,22 +685,22 @@ These rules ensure clean, maintainable XMLUI applications that follow best pract
 			}
 
 			summary := mcpserver.GetAnalyticsSummary()
-			json.NewEncoder(w).Encode(summary)
+			must(json.NewEncoder(w).Encode(summary))
 		})
 
 		addr := ":" + *port
-		fmt.Fprintf(os.Stderr, "Starting HTTP server on port %s\n", *port)
-		fmt.Fprintf(os.Stderr, "SSE endpoint: http://localhost%s/sse\n", addr)
-		fmt.Fprintf(os.Stderr, "Message endpoint: http://localhost%s/message\n", addr)
-		fmt.Fprintf(os.Stderr, "Tools endpoint: http://localhost%s/tools\n", addr)
-		fmt.Fprintf(os.Stderr, "Prompts list endpoint: http://localhost%s/prompts\n", addr)
-		fmt.Fprintf(os.Stderr, "Specific prompt endpoint: http://localhost%s/prompts/{name}\n", addr)
-		fmt.Fprintf(os.Stderr, "Session context endpoint: http://localhost%s/session/{id}\n", addr)
-		fmt.Fprintf(os.Stderr, "Inject prompt endpoint: http://localhost%s/session/context\n", addr)
-		fmt.Fprintf(os.Stderr, "Analytics summary endpoint: http://localhost%s/analytics/summary\n", addr)
+		fprintf(os.Stderr, "Starting HTTP server on port %s\n", *port)
+		fprintf(os.Stderr, "SSE endpoint: http://localhost%s/sse\n", addr)
+		fprintf(os.Stderr, "Message endpoint: http://localhost%s/message\n", addr)
+		fprintf(os.Stderr, "Tools endpoint: http://localhost%s/tools\n", addr)
+		fprintf(os.Stderr, "Prompts list endpoint: http://localhost%s/prompts\n", addr)
+		fprintf(os.Stderr, "Specific prompt endpoint: http://localhost%s/prompts/{name}\n", addr)
+		fprintf(os.Stderr, "Session context endpoint: http://localhost%s/session/{id}\n", addr)
+		fprintf(os.Stderr, "Inject prompt endpoint: http://localhost%s/session/context\n", addr)
+		fprintf(os.Stderr, "Analytics summary endpoint: http://localhost%s/analytics/summary\n", addr)
 
 		if err := http.ListenAndServe(addr, mux); err != nil {
-			fmt.Fprintf(os.Stderr, "HTTP server error: %v\n", err)
+			fprintf(os.Stderr, "HTTP server error: %v\n", err)
 			os.Exit(1)
 		}
 	} else {
@@ -720,14 +721,14 @@ These rules ensure clean, maintainable XMLUI applications that follow best pract
 		// Wait for either server error or signal
 		select {
 		case <-sigChan:
-			fmt.Fprintf(os.Stderr, "Received shutdown signal\n")
+			fprintf(os.Stderr, "Received shutdown signal\n")
 			cancel()
 		case <-ctx.Done():
 			// Context was cancelled
 		}
 
 		if serverErr != nil {
-			fmt.Fprintf(os.Stderr, "Server error: %v\n", serverErr)
+			fprintf(os.Stderr, "Server error: %v\n", serverErr)
 			os.Exit(1)
 		}
 	}
